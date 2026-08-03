@@ -17,7 +17,7 @@ class Ball {
     this.y = this.radius + Math.random() * (effect.height - this.radius * 2);
     this.vx = (Math.random() - 0.5) * 2.8;
     this.vy = (Math.random() - 0.5) * 2.8;
-    this.color = `hsl(${Math.floor(34 + Math.random() * 10)} 62% ${Math.floor(52 + Math.random() * 16)}%)`;
+    this.color = effect.palette[Math.floor(Math.random() * effect.palette.length)];
   }
 
   draw(context) {
@@ -66,6 +66,7 @@ class Effect {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.balls = [];
+    this.palette = ["#d8a74d", "#c86455", "#81a59b", "#a984bd", "#d8d1b2"];
     this.count = Number(countControl.value);
     this.speed = Number(speedControl.value);
     this.resize();
