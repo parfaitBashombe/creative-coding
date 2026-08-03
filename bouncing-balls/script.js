@@ -118,7 +118,7 @@ class Effect {
   }
 
   render() {
-    ctx.fillStyle = reducedMotion ? "#171715" : "rgb(23 23 21 / 32%)";
+    ctx.fillStyle = reducedMotion ? "#171715" : "rgb(23 23 21 / 12%)";
     ctx.fillRect(0, 0, this.width, this.height);
     this.balls.forEach((ball) => ball.update(this.speed));
     this.collideBalls();
