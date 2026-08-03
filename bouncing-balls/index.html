@@ -7,7 +7,28 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <canvas id="canvas1"></canvas>
+    <canvas id="canvas1" aria-label="Interactive bouncing ball simulation"></canvas>
+
+    <header class="masthead">
+      <h1>Bouncing balls</h1>
+      <p>Move through the field to push the system off course.</p>
+    </header>
+
+    <main class="control-deck" aria-label="Simulation controls">
+      <p class="deck-note">Collision study</p>
+      <div class="controls">
+        <label>
+          <span>Count <output id="countOutput">28</output></span>
+          <input id="countControl" type="range" min="8" max="80" value="28" />
+        </label>
+        <label>
+          <span>Velocity <output id="speedOutput">1.0×</output></span>
+          <input id="speedControl" type="range" min="0" max="2" value="1" step="0.1" />
+        </label>
+      </div>
+      <button id="resetButton" type="button">New arrangement</button>
+    </main>
+
     <script src="script.js"></script>
   </body>
 </html>
