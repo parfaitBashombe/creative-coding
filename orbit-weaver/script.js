@@ -31,7 +31,7 @@ class Particle {
     this.y = Math.random() * height;
     this.vx = (Math.random() - 0.5) * 0.5;
     this.vy = (Math.random() - 0.5) * 0.5;
-    this.radius = Math.random() * 1.5 + 0.65;
+    this.radius = Math.random() * 2.8 + 1.6;
     this.phase = Math.random() * Math.PI * 2;
     if (!initial) this.alpha = 0;
     else this.alpha = 0.4 + Math.random() * 0.55;
@@ -85,7 +85,7 @@ function populate() {
 }
 
 function drawConnections() {
-  const distanceLimit = 132;
+  const distanceLimit = 158;
   for (let i = 0; i < particles.length; i += 1) {
     for (let j = i + 1; j < particles.length; j += 1) {
       const a = particles[i];
@@ -94,10 +94,10 @@ function drawConnections() {
       const dy = a.y - b.y;
       const distance = Math.hypot(dx, dy);
       if (distance < distanceLimit) {
-        const opacity = (1 - distance / distanceLimit) * 0.18;
+        const opacity = (1 - distance / distanceLimit) * 0.42;
         context.beginPath();
         context.strokeStyle = `rgba(${currentPalette.glow.join(',')}, ${opacity})`;
-        context.lineWidth = 0.65;
+        context.lineWidth = 1.45;
         context.moveTo(a.x, a.y);
         context.lineTo(b.x, b.y);
         context.stroke();
