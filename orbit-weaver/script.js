@@ -12,9 +12,18 @@ const statusText = document.querySelector('#status-text');
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const palettes = {
-  ember: { accent: '#dd6e46', rgb: [221, 110, 70], glow: [246, 172, 120] },
-  tide: { accent: '#6bb7c7', rgb: [107, 183, 199], glow: [170, 222, 231] },
-  moss: { accent: '#a6bf68', rgb: [166, 191, 104], glow: [218, 230, 164] },
+  ember: {
+    accent: '#dd6e46',
+    colors: [[221, 110, 70], [239, 171, 79], [212, 83, 112], [244, 207, 125]],
+  },
+  tide: {
+    accent: '#6bb7c7',
+    colors: [[107, 183, 199], [109, 143, 207], [141, 211, 185], [194, 231, 221]],
+  },
+  moss: {
+    accent: '#a6bf68',
+    colors: [[166, 191, 104], [216, 183, 88], [103, 158, 120], [214, 226, 160]],
+  },
 };
 
 let currentPalette = palettes.ember;
@@ -33,6 +42,7 @@ class Particle {
     this.vy = (Math.random() - 0.5) * 0.5;
     this.radius = Math.random() * 2.8 + 1.6;
     this.phase = Math.random() * Math.PI * 2;
+    this.colorIndex = Math.floor(Math.random() * currentPalette.colors.length);
     if (!initial) this.alpha = 0;
     else this.alpha = 0.4 + Math.random() * 0.55;
   }
@@ -61,8 +71,9 @@ class Particle {
     this.alpha = Math.min(0.95, this.alpha + 0.012);
   }
   draw() {
+    const color = currentPalette.colors[this.colorIndex % currentPalette.colors.length];
     context.beginPath();
-    context.fillStyle = `rgba(${currentPalette.rgb.join(',')}, ${this.alpha})`;
+    context.fillStyle = `rgba(${color.join(',')}, ${this.alpha})`;
     context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     context.fill();
   }
@@ -86,6 +97,41 @@ function populate() {
 
 function drawConnections() {
   const distanceLimit = 158;
+  const neighbors = particles.map(() => []);
+
+  // Build the same proximity graph used for the visible links, then color
+  // each connected component as one monochrome constellation.
+  for (let i = 0; i < particles.length; i += 1) {
+    for (let j = i + 1; j < particles.length; j += 1) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      if (Math.hypot(dx, dy) < distanceLimit) {
+        neighbors[i].push(j);
+        neighbors[j].push(i);
+      }
+    }
+  }
+
+  const visited = new Set();
+  let component = 0;
+  for (let start = 0; start < particles.length; start += 1) {
+    if (visited.has(start)) continue;
+    const queue = [start];
+    visited.add(start);
+    const colorIndex = component % currentPalette.colors.length;
+    while (queue.length) {
+      const index = queue.shift();
+      particles[index].colorIndex = colorIndex;
+      neighbors[index].forEach((neighbor) => {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      });
+    }
+    component += 1;
+  }
+
   for (let i = 0; i < particles.length; i += 1) {
     for (let j = i + 1; j < particles.length; j += 1) {
       const a = particles[i];
@@ -95,8 +141,9 @@ function drawConnections() {
       const distance = Math.hypot(dx, dy);
       if (distance < distanceLimit) {
         const opacity = (1 - distance / distanceLimit) * 0.42;
+        const connectionColor = currentPalette.colors[a.colorIndex % currentPalette.colors.length];
         context.beginPath();
-        context.strokeStyle = `rgba(${currentPalette.glow.join(',')}, ${opacity})`;
+        context.strokeStyle = `rgba(${connectionColor.join(',')}, ${opacity})`;
         context.lineWidth = 1.45;
         context.moveTo(a.x, a.y);
         context.lineTo(b.x, b.y);
@@ -153,7 +200,7 @@ document.querySelectorAll('.swatch').forEach((button) => {
   button.addEventListener('click', () => {
     currentPalette = palettes[button.dataset.palette];
     document.documentElement.style.setProperty('--accent', currentPalette.accent);
-    document.documentElement.style.setProperty('--accent-rgb', currentPalette.rgb.join(', '));
+    document.documentElement.style.setProperty('--accent-rgb', currentPalette.colors[0].join(', '));
     document.querySelectorAll('.swatch').forEach((swatch) => swatch.classList.toggle('active', swatch === button));
   });
 });
