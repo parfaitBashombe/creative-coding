@@ -13,16 +13,16 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 
 const palettes = {
   ember: {
-    accent: '#dd6e46',
-    colors: [[221, 110, 70], [239, 171, 79], [212, 83, 112], [244, 207, 125]],
+    accent: '#ff5b41',
+    colors: [[255, 91, 65], [255, 190, 48], [242, 55, 113], [255, 116, 50]],
   },
   tide: {
-    accent: '#6bb7c7',
-    colors: [[107, 183, 199], [109, 143, 207], [141, 211, 185], [194, 231, 221]],
+    accent: '#1ed8d3',
+    colors: [[30, 216, 211], [65, 125, 255], [174, 67, 255], [55, 239, 157]],
   },
   moss: {
-    accent: '#a6bf68',
-    colors: [[166, 191, 104], [216, 183, 88], [103, 158, 120], [214, 226, 160]],
+    accent: '#b7ef30',
+    colors: [[183, 239, 48], [255, 202, 49], [55, 218, 155], [246, 89, 75]],
   },
 };
 
@@ -96,7 +96,7 @@ function populate() {
 }
 
 function drawConnections() {
-  const distanceLimit = 158;
+  const distanceLimit = 108;
   const neighbors = particles.map(() => []);
 
   // Build the same proximity graph used for the visible links, then color
