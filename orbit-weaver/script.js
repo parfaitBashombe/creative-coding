@@ -1,0 +1,214 @@
+const canvas = document.querySelector('#field');
+const context = canvas.getContext('2d');
+const artboard = document.querySelector('.artboard');
+const densityInput = document.querySelector('#density');
+const energyInput = document.querySelector('#energy');
+const densityValue = document.querySelector('#density-value');
+const energyValue = document.querySelector('#energy-value');
+const pauseButton = document.querySelector('#pause');
+const randomizeButton = document.querySelector('#randomize');
+const exportButton = document.querySelector('#export');
+const statusText = document.querySelector('#status-text');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const palettes = {
+  ember: {
+    accent: '#ff5b41',
+    colors: [[255, 91, 65], [255, 190, 48], [242, 55, 113], [255, 116, 50]],
+  },
+  tide: {
+    accent: '#1ed8d3',
+    colors: [[30, 216, 211], [65, 125, 255], [174, 67, 255], [55, 239, 157]],
+  },
+  moss: {
+    accent: '#b7ef30',
+    colors: [[183, 239, 48], [255, 202, 49], [55, 218, 155], [246, 89, 75]],
+  },
+};
+
+let currentPalette = palettes.ember;
+let particles = [];
+let paused = reduceMotion;
+let pointer = { x: -9999, y: -9999, active: false };
+let dimensions = { width: 0, height: 0, dpr: 1 };
+
+class Particle {
+  constructor() { this.reset(true); }
+  reset(initial = false) {
+    const { width, height } = dimensions;
+    this.x = Math.random() * width;
+    this.y = Math.random() * height;
+    this.vx = (Math.random() - 0.5) * 0.5;
+    this.vy = (Math.random() - 0.5) * 0.5;
+    this.radius = Math.random() * 2.8 + 1.6;
+    this.phase = Math.random() * Math.PI * 2;
+    this.colorIndex = Math.floor(Math.random() * currentPalette.colors.length);
+    if (!initial) this.alpha = 0;
+    else this.alpha = 0.4 + Math.random() * 0.55;
+  }
+  update(time) {
+    const energy = Number(energyInput.value) / 42;
+    this.vx += Math.cos(time * 0.00045 + this.phase) * 0.0025 * energy;
+    this.vy += Math.sin(time * 0.00035 + this.phase) * 0.0025 * energy;
+    if (pointer.active) {
+      const dx = this.x - pointer.x;
+      const dy = this.y - pointer.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 180 && distance > 0) {
+        const force = (1 - distance / 180) * 0.075 * energy;
+        this.vx += (dx / distance) * force;
+        this.vy += (dy / distance) * force;
+      }
+    }
+    this.vx *= 0.992;
+    this.vy *= 0.992;
+    this.x += this.vx * energy;
+    this.y += this.vy * energy;
+    if (this.x < -40) this.x = dimensions.width + 40;
+    if (this.x > dimensions.width + 40) this.x = -40;
+    if (this.y < -40) this.y = dimensions.height + 40;
+    if (this.y > dimensions.height + 40) this.y = -40;
+    this.alpha = Math.min(0.95, this.alpha + 0.012);
+  }
+  draw() {
+    const color = currentPalette.colors[this.colorIndex % currentPalette.colors.length];
+    context.beginPath();
+    context.fillStyle = `rgba(${color.join(',')}, ${this.alpha})`;
+    context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
+function resize() {
+  const bounds = artboard.getBoundingClientRect();
+  dimensions.width = Math.floor(bounds.width);
+  dimensions.height = Math.floor(bounds.height);
+  dimensions.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = dimensions.width * dimensions.dpr;
+  canvas.height = dimensions.height * dimensions.dpr;
+  context.setTransform(dimensions.dpr, 0, 0, dimensions.dpr, 0, 0);
+}
+
+function populate() {
+  const target = Number(densityInput.value);
+  while (particles.length < target) particles.push(new Particle());
+  particles.length = target;
+}
+
+function drawConnections() {
+  const distanceLimit = 108;
+  const neighbors = particles.map(() => []);
+
+  // Build the same proximity graph used for the visible links, then color
+  // each connected component as one monochrome constellation.
+  for (let i = 0; i < particles.length; i += 1) {
+    for (let j = i + 1; j < particles.length; j += 1) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      if (Math.hypot(dx, dy) < distanceLimit) {
+        neighbors[i].push(j);
+        neighbors[j].push(i);
+      }
+    }
+  }
+
+  const visited = new Set();
+  let component = 0;
+  for (let start = 0; start < particles.length; start += 1) {
+    if (visited.has(start)) continue;
+    const queue = [start];
+    visited.add(start);
+    const colorIndex = component % currentPalette.colors.length;
+    while (queue.length) {
+      const index = queue.shift();
+      particles[index].colorIndex = colorIndex;
+      neighbors[index].forEach((neighbor) => {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      });
+    }
+    component += 1;
+  }
+
+  for (let i = 0; i < particles.length; i += 1) {
+    for (let j = i + 1; j < particles.length; j += 1) {
+      const a = particles[i];
+      const b = particles[j];
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < distanceLimit) {
+        const opacity = (1 - distance / distanceLimit) * 0.42;
+        const connectionColor = currentPalette.colors[a.colorIndex % currentPalette.colors.length];
+        context.beginPath();
+        context.strokeStyle = `rgba(${connectionColor.join(',')}, ${opacity})`;
+        context.lineWidth = 1.45;
+        context.moveTo(a.x, a.y);
+        context.lineTo(b.x, b.y);
+        context.stroke();
+      }
+    }
+  }
+}
+
+function frame(time) {
+  context.clearRect(0, 0, dimensions.width, dimensions.height);
+  if (!paused) particles.forEach((particle) => particle.update(time));
+  drawConnections();
+  particles.forEach((particle) => particle.draw());
+  requestAnimationFrame(frame);
+}
+
+function updateRange(input, output) {
+  output.value = input.value;
+  input.style.setProperty('--value', `${((input.value - input.min) / (input.max - input.min)) * 100}%`);
+}
+
+function setPaused(next) {
+  paused = next;
+  pauseButton.textContent = paused ? 'Resume field' : 'Pause field';
+  pauseButton.setAttribute('aria-pressed', String(paused));
+  statusText.textContent = paused ? 'Field paused' : 'Field active';
+}
+
+function recompose() {
+  particles.forEach((particle) => particle.reset());
+  statusText.textContent = 'New composition';
+  window.setTimeout(() => { statusText.textContent = paused ? 'Field paused' : 'Field active'; }, 1200);
+}
+
+artboard.addEventListener('pointermove', (event) => {
+  const bounds = artboard.getBoundingClientRect();
+  pointer = { x: event.clientX - bounds.left, y: event.clientY - bounds.top, active: true };
+});
+artboard.addEventListener('pointerleave', () => { pointer.active = false; });
+
+densityInput.addEventListener('input', () => { updateRange(densityInput, densityValue); populate(); });
+energyInput.addEventListener('input', () => updateRange(energyInput, energyValue));
+pauseButton.addEventListener('click', () => setPaused(!paused));
+randomizeButton.addEventListener('click', recompose);
+exportButton.addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = 'orbit-weaver.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+document.querySelectorAll('.swatch').forEach((button) => {
+  button.addEventListener('click', () => {
+    currentPalette = palettes[button.dataset.palette];
+    document.documentElement.style.setProperty('--accent', currentPalette.accent);
+    document.documentElement.style.setProperty('--accent-rgb', currentPalette.colors[0].join(', '));
+    document.querySelectorAll('.swatch').forEach((swatch) => swatch.classList.toggle('active', swatch === button));
+  });
+});
+
+new ResizeObserver(() => { resize(); }).observe(artboard);
+updateRange(densityInput, densityValue);
+updateRange(energyInput, energyValue);
+resize();
+populate();
+setPaused(paused);
+requestAnimationFrame(frame);
