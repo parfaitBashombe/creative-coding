@@ -29,23 +29,40 @@ function noise(x, y) {
   const a = perm[X] + Y;
   const b = perm[X + 1] + Y;
   return lerp(
-    lerp(grad(perm[a], x, y),     grad(perm[b], x - 1, y),     u),
-    lerp(grad(perm[a + 1], x, y - 1), grad(perm[b + 1], x - 1, y - 1), u),
+    lerp(grad(perm[a],     x,     y),     grad(perm[b],     x - 1, y),     u),
+    lerp(grad(perm[a + 1], x,     y - 1), grad(perm[b + 1], x - 1, y - 1), u),
     v
   );
 }
 
-// --- Canvas setup ---
+// --- DOM ---
 const canvas = document.querySelector('#field');
 const context = canvas.getContext('2d');
 const artboard = document.querySelector('.artboard');
+const densityInput = document.querySelector('#density');
+const speedInput = document.querySelector('#speed');
+const densityValue = document.querySelector('#density-value');
+const speedValue = document.querySelector('#speed-value');
+const pauseButton = document.querySelector('#pause');
+const reseedButton = document.querySelector('#reseed');
+const exportButton = document.querySelector('#export');
+const statusText = document.querySelector('#status-text');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-let dimensions = { width: 0, height: 0, dpr: 1 };
+// --- Palettes ---
+const palettes = {
+  ember: { accent: '#ff5b41', colors: [[255, 91, 65], [255, 190, 48], [242, 55, 113], [255, 116, 50]] },
+  tide:  { accent: '#1ed8d3', colors: [[30, 216, 211], [65, 125, 255], [174, 67, 255], [55, 239, 157]] },
+  moss:  { accent: '#b7ef30', colors: [[183, 239, 48], [255, 202, 49], [55, 218, 155], [246, 89, 75]] },
+};
+
+let currentPalette = palettes.ember;
 let particles = [];
+let paused = reduceMotion;
+let dimensions = { width: 0, height: 0, dpr: 1 };
 let zOffset = 0;
 
 const SCALE = 0.0022;
-const currentPalette = { colors: [[255, 91, 65], [255, 190, 48], [242, 55, 113], [255, 116, 50]] };
 
 function noiseAngle(x, y) {
   return noise(x * SCALE, y * SCALE + zOffset) * Math.PI * 4;
@@ -67,12 +84,12 @@ class Particle {
     this.alpha = initial ? 0.3 + Math.random() * 0.4 : 0;
   }
 
-  update() {
+  update(speedMult) {
     this.prevX = this.x;
     this.prevY = this.y;
     const angle = noiseAngle(this.x, this.y);
-    this.x += Math.cos(angle) * this.speed;
-    this.y += Math.sin(angle) * this.speed;
+    this.x += Math.cos(angle) * this.speed * speedMult;
+    this.y += Math.sin(angle) * this.speed * speedMult;
     this.life++;
 
     if (this.life < 30) this.alpha = Math.min(0.85, this.alpha + 0.028);
@@ -107,23 +124,75 @@ function resize() {
   context.setTransform(dimensions.dpr, 0, 0, dimensions.dpr, 0, 0);
 }
 
-function populate(count) {
-  while (particles.length < count) particles.push(new Particle());
-  particles.length = count;
+function populate() {
+  const target = Number(densityInput.value);
+  while (particles.length < target) particles.push(new Particle());
+  particles.length = target;
 }
 
 function frame() {
-  context.fillStyle = 'rgba(12, 16, 18, 0.035)';
+  const speedMult = Number(speedInput.value) / 42;
+
+  context.fillStyle = reduceMotion ? '#0c1012' : 'rgba(12, 16, 18, 0.035)';
   context.fillRect(0, 0, dimensions.width, dimensions.height);
 
-  particles.forEach((p) => { p.update(); p.draw(); });
-  zOffset += 0.00042;
+  if (!paused) {
+    particles.forEach((p) => p.update(speedMult));
+    zOffset += 0.00042;
+  }
+  particles.forEach((p) => p.draw());
 
   requestAnimationFrame(frame);
 }
 
+function updateRange(input, output) {
+  output.value = input.value;
+  input.style.setProperty('--value', `${((input.value - input.min) / (input.max - input.min)) * 100}%`);
+}
+
+function setPaused(next) {
+  paused = next;
+  pauseButton.textContent = paused ? 'Resume flow' : 'Pause flow';
+  pauseButton.setAttribute('aria-pressed', String(paused));
+  statusText.textContent = paused ? 'Flow paused' : 'Flow active';
+}
+
+function reseed() {
+  seedNoise();
+  particles.forEach((p) => p.reset());
+  context.fillStyle = '#0c1012';
+  context.fillRect(0, 0, dimensions.width, dimensions.height);
+  statusText.textContent = 'New seed';
+  window.setTimeout(() => { statusText.textContent = paused ? 'Flow paused' : 'Flow active'; }, 1200);
+}
+
+// --- Events ---
+densityInput.addEventListener('input', () => { updateRange(densityInput, densityValue); populate(); });
+speedInput.addEventListener('input', () => updateRange(speedInput, speedValue));
+pauseButton.addEventListener('click', () => setPaused(!paused));
+reseedButton.addEventListener('click', reseed);
+exportButton.addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = 'flow-field.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+document.querySelectorAll('.swatch').forEach((button) => {
+  button.addEventListener('click', () => {
+    currentPalette = palettes[button.dataset.palette];
+    document.documentElement.style.setProperty('--accent', currentPalette.accent);
+    document.documentElement.style.setProperty('--accent-rgb', currentPalette.colors[0].join(', '));
+    document.querySelectorAll('.swatch').forEach((s) => s.classList.toggle('active', s === button));
+  });
+});
+
+// --- Init ---
 new ResizeObserver(() => resize()).observe(artboard);
+updateRange(densityInput, densityValue);
+updateRange(speedInput, speedValue);
 seedNoise();
 resize();
-populate(80);
+populate();
+setPaused(paused);
 requestAnimationFrame(frame);
