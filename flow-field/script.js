@@ -50,13 +50,14 @@ const statusText = document.querySelector('#status-text');
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // --- Palettes ---
+// Named after print processes; kept to 2–3 colours so they feel deliberate.
 const palettes = {
-  ember: { accent: '#ff5b41', colors: [[255, 91, 65], [255, 190, 48], [242, 55, 113], [255, 116, 50]] },
-  tide:  { accent: '#1ed8d3', colors: [[30, 216, 211], [65, 125, 255], [174, 67, 255], [55, 239, 157]] },
-  moss:  { accent: '#b7ef30', colors: [[183, 239, 48], [255, 202, 49], [55, 218, 155], [246, 89, 75]] },
+  riso:   { accent: '#e8c41a', colors: [[232, 196, 26], [218, 50, 36]] },
+  offset: { accent: '#9b7ec8', colors: [[198, 175, 120], [108, 88, 192], [188, 80, 52]] },
+  litho:  { accent: '#8bb4d4', colors: [[135, 178, 212], [212, 172, 96]] },
 };
 
-let currentPalette = palettes.ember;
+let currentPalette = palettes.riso;
 let particles = [];
 let paused = reduceMotion;
 let pointer = { x: -9999, y: -9999, active: false };
@@ -66,7 +67,10 @@ let zOffset = 0;
 const SCALE = 0.0022;
 
 function noiseAngle(x, y) {
-  return noise(x * SCALE, y * SCALE + zOffset) * Math.PI * 4;
+  // Two offset noise samples give curl-like vortices instead of plain drift.
+  const primary   = noise(x * SCALE,       y * SCALE       + zOffset);
+  const secondary = noise(x * SCALE * 2.1, y * SCALE * 2.1 + zOffset * 1.3) * 0.38;
+  return (primary + secondary) * Math.PI * 4;
 }
 
 // --- Particle ---
@@ -78,17 +82,20 @@ class Particle {
     this.y = Math.random() * dimensions.height;
     this.prevX = this.x;
     this.prevY = this.y;
-    this.speed = 0.9 + Math.random() * 0.8;
+    this.speed = 0.7 + Math.random() * 1.0;
+    // Mix hairlines with regular strokes so the field looks hand-drawn.
+    this.lineWidth = Math.random() < 0.28 ? 0.35 + Math.random() * 0.25 : 0.85 + Math.random() * 0.75;
     this.colorIndex = Math.floor(Math.random() * currentPalette.colors.length);
     this.life = 0;
-    this.maxLife = 200 + Math.random() * 220;
-    this.alpha = initial ? 0.3 + Math.random() * 0.4 : 0;
+    this.maxLife = 180 + Math.random() * 260;
+    this.alpha = initial ? 0.25 + Math.random() * 0.45 : 0;
   }
 
   update(speedMult) {
     this.prevX = this.x;
     this.prevY = this.y;
-    let angle = noiseAngle(this.x, this.y);
+    // Small per-frame jitter prevents paths from looking algorithmically smooth.
+    let angle = noiseAngle(this.x, this.y) + (Math.random() - 0.5) * 0.07;
 
     if (pointer.active) {
       const dx = this.x - pointer.x;
@@ -119,7 +126,7 @@ class Particle {
     const color = currentPalette.colors[this.colorIndex];
     context.beginPath();
     context.strokeStyle = `rgba(${color.join(',')}, ${this.alpha})`;
-    context.lineWidth = 1.1;
+    context.lineWidth = this.lineWidth;
     context.moveTo(this.prevX, this.prevY);
     context.lineTo(this.x, this.y);
     context.stroke();
@@ -145,7 +152,7 @@ function populate() {
 function frame() {
   const speedMult = Number(speedInput.value) / 42;
 
-  context.fillStyle = reduceMotion ? '#0c1012' : 'rgba(12, 16, 18, 0.035)';
+  context.fillStyle = reduceMotion ? '#0a0908' : 'rgba(10, 9, 8, 0.032)';
   context.fillRect(0, 0, dimensions.width, dimensions.height);
 
   if (!paused) {
@@ -172,7 +179,7 @@ function setPaused(next) {
 function reseed() {
   seedNoise();
   particles.forEach((p) => p.reset());
-  context.fillStyle = '#0c1012';
+  context.fillStyle = '#0a0908';
   context.fillRect(0, 0, dimensions.width, dimensions.height);
   statusText.textContent = 'New seed';
   window.setTimeout(() => { statusText.textContent = paused ? 'Flow paused' : 'Flow active'; }, 1200);
@@ -209,6 +216,8 @@ document.querySelectorAll('.swatch').forEach((button) => {
 new ResizeObserver(() => resize()).observe(artboard);
 updateRange(densityInput, densityValue);
 updateRange(speedInput, speedValue);
+document.documentElement.style.setProperty('--accent', currentPalette.accent);
+document.documentElement.style.setProperty('--accent-rgb', currentPalette.colors[0].join(', '));
 seedNoise();
 resize();
 populate();
