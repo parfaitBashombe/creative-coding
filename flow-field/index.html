@@ -14,28 +14,19 @@
         <div class="grain" aria-hidden="true"></div>
 
         <header class="masthead">
-          <a class="brand" href="." aria-label="Flow Field home">
-            <span class="brand-mark" aria-hidden="true"></span>
-            <span>Flow Field</span>
-          </a>
-          <p class="instruction">Move through the field to bend the current.</p>
+          <span class="brand">Flow Field</span>
+          <span class="instruction">hover to distort</span>
         </header>
-
-        <section class="title-block" aria-labelledby="art-title">
-          <p class="eyebrow">Generative study</p>
-          <h1 id="art-title">Every path<br />already written.</h1>
-          <p>A Perlin noise vector field shapes the course of every particle — let the field drift and redraw the map.</p>
-        </section>
 
         <div class="status" aria-live="polite">
           <span class="pulse" aria-hidden="true"></span>
-          <span id="status-text">Flow active</span>
+          <span id="status-text">running</span>
         </div>
 
         <aside class="control-panel" aria-label="Flow controls">
           <div class="panel-heading">
-            <span>Flow controls</span>
-            <button id="reseed" class="text-button" type="button">New seed</button>
+            <span>Parameters</span>
+            <button id="reseed" class="text-button" type="button">Reseed</button>
           </div>
 
           <label class="control-row" for="density">
@@ -49,17 +40,17 @@
           </label>
 
           <div class="palette-control">
-            <span>Palette</span>
+            <span>Ink</span>
             <div class="palette-options" role="group" aria-label="Color palette">
-              <button class="swatch active" data-palette="ember" type="button" aria-label="Ember palette"></button>
-              <button class="swatch tide" data-palette="tide" type="button" aria-label="Tide palette"></button>
-              <button class="swatch moss" data-palette="moss" type="button" aria-label="Moss palette"></button>
+              <button class="swatch active" data-palette="riso"   type="button" aria-label="Riso palette"></button>
+              <button class="swatch offset" data-palette="offset" type="button" aria-label="Offset palette"></button>
+              <button class="swatch litho"  data-palette="litho"  type="button" aria-label="Litho palette"></button>
             </div>
           </div>
 
           <div class="panel-actions">
-            <button id="pause" class="action-button" type="button" aria-pressed="false">Pause flow</button>
-            <button id="export" class="icon-button" type="button" aria-label="Download field image" title="Download field image">↓</button>
+            <button id="pause" class="action-button" type="button" aria-pressed="false">Pause</button>
+            <button id="export" class="icon-button" type="button" aria-label="Download field image" title="Download">↓</button>
           </div>
         </aside>
       </section>

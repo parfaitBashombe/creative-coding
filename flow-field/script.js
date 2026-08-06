@@ -171,9 +171,9 @@ function updateRange(input, output) {
 
 function setPaused(next) {
   paused = next;
-  pauseButton.textContent = paused ? 'Resume flow' : 'Pause flow';
+  pauseButton.textContent = paused ? 'Resume' : 'Pause';
   pauseButton.setAttribute('aria-pressed', String(paused));
-  statusText.textContent = paused ? 'Flow paused' : 'Flow active';
+  statusText.textContent = paused ? 'paused' : 'running';
 }
 
 function reseed() {
@@ -181,8 +181,8 @@ function reseed() {
   particles.forEach((p) => p.reset());
   context.fillStyle = '#0a0908';
   context.fillRect(0, 0, dimensions.width, dimensions.height);
-  statusText.textContent = 'New seed';
-  window.setTimeout(() => { statusText.textContent = paused ? 'Flow paused' : 'Flow active'; }, 1200);
+  statusText.textContent = 'reseeded';
+  window.setTimeout(() => { statusText.textContent = paused ? 'paused' : 'running'; }, 1200);
 }
 
 artboard.addEventListener('pointermove', (event) => {
