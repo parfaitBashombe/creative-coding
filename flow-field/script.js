@@ -84,7 +84,7 @@ class Particle {
     this.prevY = this.y;
     this.speed = 0.7 + Math.random() * 1.0;
     // Mix hairlines with regular strokes so the field looks hand-drawn.
-    this.lineWidth = Math.random() < 0.28 ? 0.35 + Math.random() * 0.25 : 0.85 + Math.random() * 0.75;
+    this.lineWidth = Math.random() < 0.28 ? 1.0 + Math.random() * 0.6 : 2.2 + Math.random() * 1.8;
     this.colorIndex = Math.floor(Math.random() * currentPalette.colors.length);
     this.life = 0;
     this.maxLife = 180 + Math.random() * 260;
