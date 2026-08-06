@@ -59,6 +59,7 @@ const palettes = {
 let currentPalette = palettes.ember;
 let particles = [];
 let paused = reduceMotion;
+let pointer = { x: -9999, y: -9999, active: false };
 let dimensions = { width: 0, height: 0, dpr: 1 };
 let zOffset = 0;
 
@@ -87,7 +88,18 @@ class Particle {
   update(speedMult) {
     this.prevX = this.x;
     this.prevY = this.y;
-    const angle = noiseAngle(this.x, this.y);
+    let angle = noiseAngle(this.x, this.y);
+
+    if (pointer.active) {
+      const dx = this.x - pointer.x;
+      const dy = this.y - pointer.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 160 && dist > 0) {
+        const pull = (1 - dist / 160) * 2.2;
+        angle += pull * Math.atan2(dy, dx) * 0.45;
+      }
+    }
+
     this.x += Math.cos(angle) * this.speed * speedMult;
     this.y += Math.sin(angle) * this.speed * speedMult;
     this.life++;
@@ -165,6 +177,12 @@ function reseed() {
   statusText.textContent = 'New seed';
   window.setTimeout(() => { statusText.textContent = paused ? 'Flow paused' : 'Flow active'; }, 1200);
 }
+
+artboard.addEventListener('pointermove', (event) => {
+  const bounds = artboard.getBoundingClientRect();
+  pointer = { x: event.clientX - bounds.left, y: event.clientY - bounds.top, active: true };
+});
+artboard.addEventListener('pointerleave', () => { pointer.active = false; });
 
 // --- Events ---
 densityInput.addEventListener('input', () => { updateRange(densityInput, densityValue); populate(); });
